@@ -25,7 +25,7 @@ No dependencies beyond the runtime tools:
 - the `pi` CLI on your PATH (html mode uses `pi --export` to render sessions)
 
 ```sh
-git clone <this-repo>
+git clone https://github.com/tony-dwire/terminal-bench-pi-viewer.git
 cd terminal-bench-pi-viewer
 export PATH="$PWD/bin:$PATH"
 ```
