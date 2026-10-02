@@ -47,6 +47,8 @@ pi-replay jobs/2026-09-30__20-55-19 --html
 Ctrl-C. The page polls each second and re-renders when the session file changes, so you can
 watch the agent work in real time.
 
+![pi-replay live viewer showing the trial sidebar with pass/fail/running statuses, a score line, and pi's rendered session export](docs/screenshot.png)
+
 ### The HTML viewer
 
 - **Sidebar** lists every trial in the job that has pi sessions, most recent first, with
