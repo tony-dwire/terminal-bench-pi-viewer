@@ -17,7 +17,8 @@ set -euo pipefail
 #   <trial>/agent/pi.txt               JSONL event stream (no streaming deltas)
 #   <trial>/agent/pi/sessions/*.jsonl  native pi session file(s)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# resolve symlinks so the script works when linked from elsewhere (e.g. ~/bin)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 TRIAL=""
 MODE="replay"
 
