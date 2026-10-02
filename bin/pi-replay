@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Replay a terminal-bench / harbor pi-agent run from its job artifacts.
+#
+# Usage:
+#   pi-replay <trial-dir>            Render a finished run in the terminal
+#   pi-replay <trial-dir> --live     Follow a running run live (like asciinema play)
+#   pi-replay <job-or-trial-dir> --html
+#                                    Live HTML viewer with a trial sidebar: starts a
+#                                    small node server, opens the browser; the page
+#                                    polls the session file and re-renders every
+#                                    second (Ctrl-C to stop)
+#
+# <trial-dir> is e.g. jobs/2026-09-30__20-55-19/build-cython-ext__USv7taD
+# Artifacts used (produced by the pi agent inside terminal-bench/harbor):
+#   <trial>/agent/pi.txt               JSONL event stream (no streaming deltas)
+#   <trial>/agent/pi/sessions/*.jsonl  native pi session file(s)
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TRIAL=""
+MODE="replay"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      sed -n '3,15p' "$0"; exit 0 ;;
+    --html)
+      MODE="html"; shift ;;
+    --live)
+      [[ "$MODE" == "replay" ]] && MODE="live"; shift ;;
+    *)
+      TRIAL="$1"; shift ;;
+  esac
+done
+
+if [[ -z "$TRIAL" || ! -d "$TRIAL" ]]; then
+  echo "usage: pi-replay <trial-dir> [--live|--html]" >&2
+  exit 1
+fi
+
+PI_TXT="$TRIAL/agent/pi.txt"
+SESSIONS_DIR="$TRIAL/agent/pi/sessions"
+
+if [[ "$MODE" == "html" ]]; then
+  # accepts a job dir or a trial dir; node resolves it and builds the sidebar
+  exec node "$SCRIPT_DIR/../lib/pi-replay.js" "$TRIAL"
+fi
+
+FORMAT='
+  def trunc(s; n): if (s|length) > n then s[0:n] + " …[truncated]" else s end;
+  def textof(c): [ c[]? | select(.type == "text") | .text ] | join("\n");
+
+  def block(b):
+    if b.type == "thinking" then
+      "\n  · thinking: " + trunc(b.thinking // ""; 500) + "\n"
+    elif b.type == "text" then
+      "\n" + trunc(b.text // ""; 2000) + "\n"
+    elif b.type == "toolCall" then
+      "\n  → " + b.name + " " + trunc(b.arguments | tostring; 400) + "\n"
+    else empty end;
+
+  if .type == "message_end" then
+    .message as $m |
+    if $m.role == "assistant" then
+      "──── assistant ──────────────" +
+      ([$m.content[]? | block(.)] | join(""))
+    elif $m.role == "toolResult" then
+      "  ← result: " + trunc(textof($m.content // []); 800)
+    elif $m.role == "user" then
+      "──── user ───────────────────\n" + trunc(textof($m.content // []); 2000) + "\n"
+    else empty end
+  elif .type == "tool_execution_start" then
+    empty
+  elif .type == "tool_execution_end" then
+    empty
+  else empty end
+'
+
+if [[ "$MODE" == "live" ]]; then
+  if [[ ! -f "$PI_TXT" ]]; then
+    echo "No pi.txt at $PI_TXT yet" >&2
+    exit 1
+  fi
+  tail -n +1 -F "$PI_TXT" | jq -r --unbuffered "$FORMAT"
+else
+  if [[ ! -f "$PI_TXT" ]]; then
+    echo "No pi.txt at $PI_TXT" >&2
+    exit 1
+  fi
+  jq -r "$FORMAT" "$PI_TXT"
+fi
