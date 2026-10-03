@@ -33,8 +33,10 @@ interface SessionMessage {
   isError?: boolean;
   details?: {
     diff?: string;
-    nestedCalls?: { calls: NestedCall[]; complete?: boolean };
   };
+  // calls this tool made through ctx.executeTool() (e.g. from a codemode script);
+  // recorded with name/args/duration/error but without their results
+  nestedCalls?: { calls: NestedCall[]; complete?: boolean };
 }
 
 interface SessionEntry {
@@ -162,7 +164,8 @@ function Sidebar({ trials, current, onSelect, note }: {
 
 // ------------------------------------------------------------------ tools
 
-const THINKING_LINES = 12; // how much thinking to show before truncating
+const THINKING_LINES = 12;    // thinking lines shown before truncating
+const CODE_PREVIEW_LINES = 15; // codemode script lines shown before truncating
 
 // Thinking is shown partially expanded by default: a fixed number of lines
 // with a fade-out, click anywhere to toggle the rest.
@@ -190,20 +193,33 @@ function Thinking({ text }: { text: string }) {
   );
 }
 
-function Collapsible({ text, preview = 10, className = 'tool-output' }: {
+// Long blocks open partially expanded by default: a fixed number of lines
+// with a fade-out, click to toggle the rest (same pattern as thinking).
+function Collapsible({ text, preview = 10, className = 'tool-output', html = false }: {
   text: string;
   preview?: number;
   className?: string;
+  html?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const lines = text.split('\n');
-  if (lines.length <= preview) {
-    return <div className={className}><pre>{text}</pre></div>;
+  const truncated = !expanded && lines.length > preview;
+  const toggle = () => setExpanded(!expanded);
+  const shown = truncated ? lines.slice(0, preview).join('\n') : text;
+  const cls = `${className}${truncated ? ' truncated' : ''}`;
+  const body = html
+    ? <pre dangerouslySetInnerHTML={{ __html: shown }} />
+    : <pre>{shown}</pre>;
+  if (!truncated && lines.length <= preview) {
+    return <div className={className}>{body}</div>;
   }
   return (
-    <details className={`${className} expandable`}>
-      <summary>{lines.length} lines — click to expand</summary>
-      <pre>{text}</pre>
-    </details>
+    <div className={cls} onClick={toggle}>
+      {body}
+      <div className="thinking-toggle">
+        {expanded ? 'show less' : `show ${lines.length - preview} more lines`}
+      </div>
+    </div>
   );
 }
 
@@ -218,7 +234,7 @@ function NestedCalls({ nested }: { nested: { calls: NestedCall[]; complete?: boo
   return (
     <Collapsible
       className="tool-output nested"
-      preview={1}
+      preview={3}
       text={[
         `nested calls: ${nested.calls.length}${nested.complete === false ? ' (incomplete)' : ''}`,
         ...nested.calls.map((c) =>
@@ -249,11 +265,15 @@ function ToolCall({ call, result }: { call: ToolCallBlock; result?: ToolResultEn
     if (typeof args.code === 'string') {
       body = (
         <>
-          <div className="tool-output code-arg">
-            <pre dangerouslySetInnerHTML={{ __html: String(args.code) }} />
-          </div>
-          {result?.message.details?.nestedCalls?.calls?.length ? (
-            <NestedCalls nested={result.message.details.nestedCalls} />
+          <Collapsible
+            text={String(args.code)}
+            html
+            preview={CODE_PREVIEW_LINES}
+            className="tool-output code-arg"
+          />
+          {output ? <Collapsible text={output} preview={10} className={`tool-output${errClass}`} /> : null}
+          {result?.message.nestedCalls?.calls?.length ? (
+            <NestedCalls nested={result.message.nestedCalls} />
           ) : null}
         </>
       );
@@ -353,7 +373,8 @@ function parseSession(text: string): SessionEntry[] {
   return entries;
 }
 
-function MessageList({ entries }: { entries: SessionEntry[] }) {
+function MessageList({ entries, atBottomRef }: { entries: SessionEntry[]; atBottomRef: React.MutableRefObject<boolean> }) {
+  const listRef = useRef<HTMLDivElement>(null);
   const results = new Map<string, ToolResultEntry>();
   for (const e of entries) {
     if (e.type === 'message' && e.message?.role === 'toolResult' && e.message.toolCallId) {
@@ -375,12 +396,28 @@ function MessageList({ entries }: { entries: SessionEntry[] }) {
       );
     }
   }
-  return <div id="messages">{visible}</div>;
+  // keep the bottom of the transcript in view as new results stream in —
+  // but only while the user is already reading the tail
+  useEffect(() => {
+    const list = listRef.current;
+    const container = list?.closest('#main');
+    if (!list || !container) return;
+    const c = container as HTMLElement;
+    const last = list.lastElementChild as HTMLElement | null;
+    if (!last) return;
+    const delta = last.getBoundingClientRect().bottom - c.getBoundingClientRect().bottom;
+    if (atBottomRef.current) {
+      c.scrollTop += delta;
+    }
+  }, [entries, atBottomRef]);
+
+  return <div id="messages" ref={listRef}>{visible}</div>;
 }
 
 // -------------------------------------------------------------------- app
 
 function App() {
+  const atBottomRef = useRef(true); // user is reading the tail of the transcript
   const [trials, setTrials] = useState<TrialInfo[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
   const [entries, setEntries] = useState<SessionEntry[]>([]);
@@ -446,6 +483,18 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // track whether the user is reading the tail of the transcript
+  useEffect(() => {
+    const c = document.getElementById('main');
+    if (!c) return;
+    const onScroll = () => {
+      atBottomRef.current = c.scrollTop + c.clientHeight >= c.scrollHeight - 24;
+    };
+    onScroll();
+    c.addEventListener('scroll', onScroll, { passive: true });
+    return () => c.removeEventListener('scroll', onScroll);
+  }, []);
+
   // sidebar refresh
   useEffect(() => {
     const iv = setInterval(() => void (async () => {
@@ -486,7 +535,7 @@ function App() {
       <Sidebar trials={trials} current={current} onSelect={select} note={note} />
       <main id="main">
         {entries.length
-          ? <MessageList entries={entries} />
+          ? <MessageList entries={entries} atBottomRef={atBottomRef} />
           : <div id="empty">no session loaded yet…</div>}
       </main>
     </>

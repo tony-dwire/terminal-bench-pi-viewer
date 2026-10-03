@@ -132,6 +132,20 @@
   .tool-output.expandable > summary { display: list-item; }
   .tool-output.expandable:not([open]) pre { display: none; }
 
+  /* partial-expand pattern (same as thinking): fade + click-to-toggle */
+  .tool-output.truncated { cursor: pointer; }
+  .tool-output.truncated pre {
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-output.truncated pre::after {
+    content: '';
+    position: absolute; right: 0; bottom: 0; left: 0;
+    height: 2.5em;
+    background: linear-gradient(to bottom, transparent, #141419);
+    pointer-events: none;
+  }
+
   .tool-diff {
     margin: 8px 0 0; padding: 8px 10px;
     background: #141419; border-radius: 6px;
@@ -141,7 +155,6 @@
   .diff-removed { color: #d66; }
   .diff-context { color: #99a; }
 
-  .nested { color: #99a; font-size: 12px; }
 
   .compaction {
     margin: 14px 0; padding: 6px 12px;
