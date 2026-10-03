@@ -46,16 +46,26 @@ pi-replay jobs/2026-09-30__20-55-19 --html
 Ctrl-C. The page polls each second and re-renders when the session file changes, so you can
 watch the agent work in real time.
 
-![pi-replay live viewer showing the trial sidebar with pass/fail/running statuses, a score line, and pi's rendered session export](docs/screenshot.png)
+![pi-replay live viewer showing the trial sidebar with pass/fail/running statuses, a score line, and a rendered session with markdown and highlighted codemode scripts](docs/screenshot.png)
 
 ### The HTML viewer
 
 - **Sidebar** lists every trial in the job that has pi sessions, most recent first, with
   status icons: ✓ pass · ✗ fail · ⚠ error/cancelled · spinner while running
 - **Score line** under the header: passes / scored trials, truncated to two digits (e.g. `3/5 scored · 0.60`)
-- **Main pane** renders the selected session: user messages, assistant markdown (rendered
-  with [marked](https://github.com/markedjs/marked)), collapsible thinking blocks, and tool
-  calls with compact headers and collapsible output
+- **Main pane** renders the selected session:
+  - user messages and assistant markdown, rendered with
+    [marked](https://github.com/markedjs/marked) after escaping (session content can never
+    inject markup)
+  - thinking blocks that open with a bounded preview — click to expand the rest
+  - tool calls with compact headers, syntax-highlighted diffs, and collapsible output
+  - **codemode** calls pretty-printed with [prettier](https://prettier.io) and syntax
+    highlighted with [highlight.js](https://highlightjs.org), with their output and the
+    nested tool calls they made (arguments, durations, errors) below the script
+  - every long block (script, output, thinking, nested calls) opens with a preview plus a
+    fade and a click-to-expand toggle
+- The transcript stays pinned to the newest message as results stream in; scrolling up to
+  read pauses the pinning until you return to the tail
 - The session is re-fetched automatically when the session file changes, so you can watch
   the agent work in real time
 - Selected trial is tracked in the URL hash, so a reload (or a bookmark) resumes where you were
