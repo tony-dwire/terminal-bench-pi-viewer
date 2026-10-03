@@ -14,6 +14,26 @@ export function md(text: string): { __html: string } {
   return { __html: marked.parse(escapeHtml(text)) };
 }
 
+// Compact token count for display: 8250 -> "8.3k", 1234567 -> "1.2M".
+export function fmtTokens(n: number): string {
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M';
+  if (n >= 1e4) return Math.round(n / 1e3) + 'k';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return String(n);
+}
+
+// Context usage of the most recent assistant message: the model's
+// usage.totalTokens after its last turn (undefined if the session has none).
+export function latestContext(entries: SessionEntry[]): number | undefined {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (e.type === 'message' && e.message?.role === 'assistant' && e.message.usage?.totalTokens) {
+      return e.message.usage.totalTokens;
+    }
+  }
+  return undefined;
+}
+
 export function statusGlyph(st: string): string {
   if (st === 'pass') return '✓';
   if (st === 'fail') return '✗';

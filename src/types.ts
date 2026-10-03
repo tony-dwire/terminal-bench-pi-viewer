@@ -5,8 +5,19 @@ export interface ThinkingBlock { type: 'thinking'; thinking: string }
 export interface ToolCallBlock { type: 'toolCall'; id: string; name: string; arguments?: Record<string, unknown> }
 export type ContentBlock = TextBlock | ThinkingBlock | ToolCallBlock;
 
+// Token accounting pi records on assistant messages (subset we render).
+export interface TokenUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  reasoning?: number;
+  totalTokens: number;
+}
+
 export interface SessionMessage {
   role: 'user' | 'assistant' | 'toolResult' | string;
+  usage?: TokenUsage;
   content: ContentBlock[] | string;
   toolCallId?: string;
   toolName?: string;

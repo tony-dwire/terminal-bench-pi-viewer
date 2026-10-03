@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { MessageList } from './MessageList';
 import { formatCode } from './format';
-import { parseSession } from './helpers';
+import { latestContext, parseSession } from './helpers';
 import type { SessionEntry, TextBlock, TrialInfo } from './types';
 
 const SWAP_MIN_MS = 3000;      // don't re-fetch the session more often than this
@@ -128,7 +128,7 @@ export function App() {
 
   return (
     <>
-      <Sidebar trials={trials} current={current} onSelect={select} note={note} />
+      <Sidebar trials={trials} current={current} onSelect={select} note={note} contextTokens={latestContext(entries)} />
       <main id="main">
         {entries.length
           ? <MessageList entries={entries} atBottomRef={atBottomRef} />

@@ -1,13 +1,14 @@
 // Trial list with pass/fail/running status and the running score.
 
-import { statusGlyph, statusLabel } from './helpers';
+import { fmtTokens, statusGlyph, statusLabel } from './helpers';
 import type { TrialInfo } from './types';
 
-export function Sidebar({ trials, current, onSelect, note }: {
+export function Sidebar({ trials, current, onSelect, note, contextTokens }: {
   trials: TrialInfo[];
   current: string | null;
   onSelect: (name: string) => void;
   note: string;
+  contextTokens?: number;
 }) {
   const scored = trials.filter((t) => ['pass', 'fail', 'part'].includes(t.st));
   const passed = trials.filter((t) => t.st === 'pass').length;
@@ -27,7 +28,10 @@ export function Sidebar({ trials, current, onSelect, note }: {
           </div>
         ))}
       </nav>
-      <footer id="status">{note || (sel ? statusLabel(sel.st) : '')}</footer>
+      <footer id="status">
+        {note || (sel ? statusLabel(sel.st) : '')}
+        {contextTokens ? <span className="ctx"> · ctx {fmtTokens(contextTokens)}</span> : null}
+      </footer>
     </aside>
   );
 }

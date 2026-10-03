@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { Thinking } from './Collapsible';
 import { ToolCall } from './ToolCall';
-import { md, ts } from './helpers';
+import { fmtTokens, md, ts } from './helpers';
 import type { SessionEntry, TextBlock, ThinkingBlock, ToolCallBlock, ToolResultEntry } from './types';
 
 function Message({ entry, results }: { entry: SessionEntry; results: Map<string, ToolResultEntry> }) {
@@ -37,6 +37,7 @@ function Message({ entry, results }: { entry: SessionEntry; results: Map<string,
         {content.filter((c) => c.type === 'toolCall').map((c) => (
           <ToolCall key={(c as ToolCallBlock).id} call={c as ToolCallBlock} result={results.get((c as ToolCallBlock).id)} />
         ))}
+        {msg.usage?.totalTokens ? <div className="msg-ctx">ctx {fmtTokens(msg.usage.totalTokens)}</div> : null}
       </div>
     );
   }
