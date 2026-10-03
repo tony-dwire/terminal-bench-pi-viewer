@@ -27,7 +27,6 @@
   #list { flex: 1; overflow-y: auto; }
   #status { min-height: 14px; padding: 6px 12px; border-top: 1px solid #2a2a2a; font-size: 11px; color: #778; }
 
-  /* --- trial rows ---------------------------------------------------- */
   .t {
     display: flex; gap: 9px; align-items: baseline;
     padding: 7px 12px;
@@ -51,25 +50,97 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* --- main pane ----------------------------------------------------- */
-  #main { flex: 1; position: relative; background: #111; }
-  iframe {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%; border: 0;
-    background: #111; color-scheme: dark;
+  #main { flex: 1; overflow-y: auto; background: #111; }
+  #empty { padding: 2em; font: 13px ui-monospace, monospace; color: #667; }
+
+  #messages { max-width: 860px; margin: 0 auto; padding: 1em 1.5em 4em; }
+
+  .msg-ts { font: 11px ui-monospace, monospace; color: #667; margin: 18px 0 4px; }
+  .markdown-content { color: #ddd; font: 14px/1.55 -apple-system, 'Segoe UI', sans-serif; overflow-wrap: break-word; }
+  .markdown-content p { margin: 0.4em 0; }
+  .markdown-content pre, .markdown-content code { font: 13px ui-monospace, monospace; }
+  .markdown-content code { background: #26262e; padding: 1px 5px; border-radius: 4px; }
+  .markdown-content pre code { display: block; padding: 10px 12px; background: #1a1a20; border-radius: 6px; overflow-x: auto; }
+  .markdown-content a { color: #7ab; }
+  .markdown-content ul, .markdown-content ol { padding-left: 1.4em; }
+  .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-size: 15px; margin: 0.6em 0 0.3em; }
+
+  .user-message { }
+  .user-message .markdown-content {
+    background: #23232b; border-radius: 8px;
+    padding: 10px 14px; display: inline-block;
   }
-  iframe.pending { opacity: 0; }
+
+  .thinking-block { margin: 8px 0; cursor: pointer; }
+  .thinking-text {
+    color: #99a; font: 12px/1.5 ui-monospace, monospace;
+    white-space: pre-wrap; padding: 6px 0 6px 12px;
+    border-left: 2px solid #2a2a35;
+  }
+  .thinking-block.truncated .thinking-text {
+    position: relative;
+    overflow: hidden;
+    max-height: calc(12 * 1.5 * 12px + 12px); /* THINKING_LINES + padding */
+  }
+  .thinking-block.truncated .thinking-text::after {
+    content: '';
+    position: absolute; right: 0; bottom: 0; left: 12px;
+    height: 2.5em;
+    background: linear-gradient(to bottom, transparent, #111);
+    pointer-events: none;
+  }
+  .thinking-toggle { font-size: 11px; color: #99a7b5; padding: 3px 0 4px 12px; user-select: none; cursor: pointer; }
+
+  .tool-execution {
+    margin: 10px 0; padding: 8px 12px;
+    background: #1a1a21; border: 1px solid #26262e; border-radius: 8px;
+    font: 13px ui-monospace, monospace; color: #ccc;
+  }
+  .tool-execution.pending { opacity: 0.6; }
+  .tool-execution.error { border-color: #55222a; }
+  .tool-command { color: #9cd; white-space: pre-wrap; }
+  .tool-header .tool-name { color: #9cd; }
+  .tool-header .tool-path { color: #b8b8b8; }
+  .line-count { color: #667; font-size: 11px; margin-left: 6px; }
+
+  .tool-output pre {
+    margin: 8px 0 0; padding: 8px 10px;
+    background: #141419; border-radius: 6px;
+    overflow-x: auto; overflow-wrap: break-word; white-space: pre-wrap;
+    font-size: 12.5px; color: #b8b8b8;
+  }
+  .tool-output.code-arg pre { color: #cad; white-space: pre; }
+  .tool-output.error pre { color: #d77; }
+  .tool-output.expandable summary {
+    cursor: pointer; font-size: 11px; color: #778; user-select: none;
+    margin-top: 8px; list-style: none;
+  }
+  .tool-output.expandable summary::before { content: '▸ '; }
+  .tool-output.expandable[open] summary::before { content: '▾ '; }
+  .tool-output.expandable > summary { display: list-item; }
+  .tool-output.expandable:not([open]) pre { display: none; }
+
+  .tool-diff {
+    margin: 8px 0 0; padding: 8px 10px;
+    background: #141419; border-radius: 6px;
+    font-size: 12.5px; overflow-x: auto;
+  }
+  .diff-added { color: #7c7; }
+  .diff-removed { color: #d66; }
+  .diff-context { color: #99a; }
+
+  .nested { color: #99a; font-size: 12px; }
+
+  .compaction {
+    margin: 14px 0; padding: 6px 12px;
+    border-left: 3px solid #445;
+    font: 12px ui-monospace, monospace; color: #889;
+  }
+  .compaction-label { color: #99a; margin-right: 8px; }
 </style>
 </head>
 <body>
-<div id="wrap">
-  <aside id="side">
-    <h1>trials <span id="count"></span></h1>
-    <div id="score"></div>
-    <nav id="list"></nav>
-    <footer id="status"></footer>
-  </aside>
-  <main id="main"><iframe id="frame"></iframe></main>
-</div>
-<script src="/viewer.js"></script>
+<div id="wrap"><div id="root" style="display:flex;height:100%;width:100%"></div></div>
+<script src="/viewer.app.js"></script>
 </body>
 </html>

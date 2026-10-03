@@ -12,17 +12,16 @@ turns those back into something you can actually read:
 
 - **Terminal replay** of a finished trial (assistant / user / tool calls / results)
 - **`--live`** follows a running trial like an asciinema play
-- **`--html`** serves a live viewer: pi's own full-fidelity HTML export in an iframe, with a
-  scrollable sidebar of all trials in the job, pass/fail/running status, a spinner for
-  in-progress trials, and a running success score
+- **`--html`** serves a live viewer: a React app that fetches the raw session JSONL and
+  renders it client-side, with a scrollable sidebar of all trials in the job,
+  pass/fail/running status, a spinner for in-progress trials, and a running success score
 
 ## Install
 
 No dependencies beyond the runtime tools:
 
 - bash, jq (terminal modes)
-- node ≥ 16 (html mode)
-- the `pi` CLI on your PATH (html mode uses `pi --export` to render sessions)
+- node ≥ 16 (html mode; no npm install needed — the client bundle is committed)
 
 ```sh
 git clone https://github.com/tony-dwire/terminal-bench-pi-viewer.git
@@ -54,23 +53,36 @@ watch the agent work in real time.
 - **Sidebar** lists every trial in the job that has pi sessions, most recent first, with
   status icons: ✓ pass · ✗ fail · ⚠ error/cancelled · spinner while running
 - **Score line** under the header: passes / scored trials, truncated to two digits (e.g. `3/5 scored · 0.60`)
-- **Main pane** shows pi's own export of the selected session (session tree, search, tool calls),
-  hot-swapped with double buffering so refreshes never flicker or scroll-jump
+- **Main pane** renders the selected session: user messages, assistant markdown (rendered
+  with [marked](https://github.com/markedjs/marked)), collapsible thinking blocks, and tool
+  calls with compact headers and collapsible output
+- The session is re-fetched automatically when the session file changes, so you can watch
+  the agent work in real time
 - Selected trial is tracked in the URL hash, so a reload (or a bookmark) resumes where you were
 
 ## How it works
 
 `--html` mode runs a small zero-dependency node server (`lib/server.js`):
 
-| route        | purpose                                                        |
-|--------------|----------------------------------------------------------------|
-| `/`          | wrapper page: sidebar + iframe (`lib/viewer.html` + `lib/viewer.js`) |
-| `/trials`    | JSON list of trials with pi sessions, with verifier-derived status |
-| `/version?t=`| freshness probe per trial (mtime + size)                        |
-| `/export?t=` | `pi --export` HTML for that trial, cached until the session changes |
+| route           | purpose                                                        |
+|-----------------|----------------------------------------------------------------|
+| `/`             | wrapper page (`lib/viewer.html`)                                |
+| `/viewer.app.js`| bundled React client (built from `src/app.tsx` with esbuild)    |
+| `/trials`       | JSON list of trials with pi sessions, with verifier-derived status |
+| `/version?t=`   | freshness probe per trial (mtime + size)                        |
+| `/session?t=`   | raw pi session JSONL for that trial                             |
 
 Status comes from each trial's `result.json` (`verifier_result.rewards.reward`):
 reward ≥ 1.0 → pass, ≤ 0.0 → fail, no verifier result → error, no result yet → running.
+
+### Building the client
+
+The bundled client is committed (`lib/viewer.app.js`), so html mode needs no npm install.
+To rebuild it after changing `src/`:
+
+```sh
+npm run build
+```
 
 ## License
 

@@ -1,0 +1,16 @@
+{
+  "name": "terminal-bench-pi-viewer",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/app.tsx --bundle --minify --jsx=automatic --outfile=lib/viewer.app.js",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.28.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}
