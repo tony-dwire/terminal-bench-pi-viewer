@@ -8,6 +8,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { marked } from './vendor/marked';
+import * as prettier from 'prettier/standalone';
+import * as prettierTypescript from 'prettier/plugins/typescript';
+import * as prettierEstree from 'prettier/plugins/estree';
+import hljs from 'highlight.js/lib/core';
+import hljsTs from 'highlight.js/lib/languages/typescript';
 
 const SWAP_MIN_MS = 3000;      // don't re-fetch the session more often than this
 const TRIALS_MS = 5000;        // sidebar refresh interval
@@ -70,6 +75,30 @@ const escapeHtml = (s: string): string => String(s).replace(/[&<>"']/g, (c) => E
 // (which may contain prompt-injected content) can inject markup.
 function md(text: string): { __html: string } {
   return { __html: marked.parse(escapeHtml(text)) };
+}
+
+// Codemode scripts are stored as one long source string; pretty-print them
+// (they are TypeScript) so they read like code instead of a wall of text.
+// Cached and applied at session-load time so rendering stays synchronous.
+hljs.registerLanguage('typescript', hljsTs);
+
+const fmtCache = new Map<string, string>();
+async function formatCode(code: string): Promise<string> {
+  const hit = fmtCache.get(code);
+  if (hit !== undefined) return hit;
+  let out = code;
+  const unwrap = (p: unknown) => ((p as { default?: unknown }).default ?? p);
+  try {
+    out = await prettier.format(code, {
+      parser: 'typescript',
+      plugins: [unwrap(prettierTypescript), unwrap(prettierEstree)] as never[],
+      printWidth: 100,
+    });
+  } catch { /* not parseable — show it raw */ }
+  // highlight AFTER formatting, so the cache holds the final HTML
+  out = hljs.highlight(out, { language: 'typescript' }).value;
+  fmtCache.set(code, out);
+  return out;
 }
 
 function statusGlyph(st: string): string {
@@ -220,7 +249,9 @@ function ToolCall({ call, result }: { call: ToolCallBlock; result?: ToolResultEn
     if (typeof args.code === 'string') {
       body = (
         <>
-          <div className="tool-output code-arg"><pre>{args.code}</pre></div>
+          <div className="tool-output code-arg">
+            <pre dangerouslySetInnerHTML={{ __html: String(args.code) }} />
+          </div>
           {result?.message.details?.nestedCalls?.calls?.length ? (
             <NestedCalls nested={result.message.details.nestedCalls} />
           ) : null}
@@ -363,7 +394,28 @@ function App() {
   const loadSession = useCallback(async (trial: string) => {
     try {
       const res = await fetch(`/session?t=${encodeURIComponent(trial)}`, { cache: 'no-store' });
-      setEntries(parseSession(await res.text()));
+      const parsed = parseSession(await res.text());
+      // pretty-print codemode scripts before they hit the screen
+      const codes: string[] = [];
+      for (const e of parsed) {
+        const content = e.type === 'message' && Array.isArray(e.message?.content) ? e.message!.content : [];
+        for (const c of content) {
+          if (c.type === 'toolCall' && c.name === 'codemode' && typeof c.arguments?.code === 'string') {
+            codes.push(c.arguments.code);
+          }
+        }
+      }
+      const formatted = await Promise.all(codes.map((c) => formatCode(c)));
+      let i = 0;
+      for (const e of parsed) {
+        const content = e.type === 'message' && Array.isArray(e.message?.content) ? e.message!.content : [];
+        for (const c of content) {
+          if (c.type === 'toolCall' && c.name === 'codemode' && typeof c.arguments?.code === 'string') {
+            c.arguments.code = formatted[i++];
+          }
+        }
+      }
+      setEntries(parsed);
     } catch { /* keep old entries */ }
   }, []);
 

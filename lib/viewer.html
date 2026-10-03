@@ -110,6 +110,18 @@
     font-size: 12.5px; color: #b8b8b8;
   }
   .tool-output.code-arg pre { color: #cad; white-space: pre; }
+
+  /* --- syntax highlight (highlight.js, github-dark-ish) -------------- */
+  .code-arg .hljs-keyword, .code-arg .hljs-selector-tag, .code-arg .hljs-doctag { color: #ff7b72; }
+  .code-arg .hljs-string, .code-arg .hljs-regexp, .code-arg .hljs-meta .hljs-string { color: #a5d6ff; }
+  .code-arg .hljs-number, .code-arg .hljs-literal, .code-arg .hljs-built_in { color: #79c0ff; }
+  .code-arg .hljs-comment { color: #8b949e; font-style: italic; }
+  .code-arg .hljs-title, .code-arg .hljs-title.function_, .code-arg .hljs-section { color: #d2a8ff; }
+  .code-arg .hljs-attr, .code-arg .hljs-property, .code-arg .hljs-variable, .code-arg .hljs-template-variable { color: #7ee787; }
+  .code-arg .hljs-type, .code-arg .hljs-class .hljs-title, .code-arg .hljs-symbol { color: #ffa657; }
+  .code-arg .hljs-operator, .code-arg .hljs-punctuation, .code-arg .hljs-meta { color: #c9d1d9; }
+  .code-arg .hljs-addition { color: #7ee787; background: #1b2e20; }
+  .code-arg .hljs-deletion { color: #ffdcd7; background: #402329; }
   .tool-output.error pre { color: #d77; }
   .tool-output.expandable summary {
     cursor: pointer; font-size: 11px; color: #778; user-select: none;
