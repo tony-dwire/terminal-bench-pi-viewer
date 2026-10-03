@@ -60,11 +60,11 @@ watch the agent work in real time.
 
 ## How it works
 
-`--html` mode runs a small zero-dependency node server (`lib/pi-replay.js`):
+`--html` mode runs a small zero-dependency node server (`lib/server.js`):
 
 | route        | purpose                                                        |
 |--------------|----------------------------------------------------------------|
-| `/`          | wrapper page: sidebar + iframe                                  |
+| `/`          | wrapper page: sidebar + iframe (`lib/viewer.html` + `lib/viewer.js`) |
 | `/trials`    | JSON list of trials with pi sessions, with verifier-derived status |
 | `/version?t=`| freshness probe per trial (mtime + size)                        |
 | `/export?t=` | `pi --export` HTML for that trial, cached until the session changes |

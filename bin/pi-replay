@@ -45,7 +45,7 @@ SESSIONS_DIR="$TRIAL/agent/pi/sessions"
 
 if [[ "$MODE" == "html" ]]; then
   # accepts a job dir or a trial dir; node resolves it and builds the sidebar
-  exec node "$SCRIPT_DIR/../lib/pi-replay.js" "$TRIAL"
+  exec node "$SCRIPT_DIR/../lib/server.js" "$TRIAL"
 fi
 
 FORMAT='
